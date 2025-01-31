@@ -445,18 +445,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "hyprdesk-rust"
-version = "0.1.0"
-dependencies = [
- "glib-build-tools",
- "gtk4",
- "gtk4-layer-shell",
- "gtk4-sys",
- "libadwaita",
- "libc",
-]
-
-[[package]]
 name = "indexmap"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -814,6 +802,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad699df48212c6cc6eb4435f35500ac6fd3b9913324f938aea302022ce19d310"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "wswicher"
+version = "0.1.0"
+dependencies = [
+ "glib-build-tools",
+ "gtk4",
+ "gtk4-layer-shell",
+ "gtk4-sys",
+ "libadwaita",
+ "libc",
 ]
 
 [[package]]
