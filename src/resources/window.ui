@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+	<requires lib="gtk" version="4.0" />
+	<object class="GtkWindow" id="window">
+		<property name="title">
+			Hello, GTK!
+		</property>
+		<child>
+      <object class="GtkScrolledWindow" id="scrolled-window">
+        <property name="hscrollbar-policy">never</property>
+        <property name="min-content-height">360</property>
+        <property name="vexpand">true</property>
+      </object>
+		</child>
+	</object>
+</interface>

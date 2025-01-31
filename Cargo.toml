@@ -1,0 +1,14 @@
+[package]
+name = "hyprdesk-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+adw = { version = "0.7.1", package = "libadwaita", features = ["v1_5", "v1_6"] }
+gtk = { version = "0.9.5", package = "gtk4", features = ["v4_16"] }
+gtk4-layer-shell = "0.4.0"
+gtk4-sys = "0.9.5"
+libc = "0.2.169"
+
+[build-dependencies]
+glib-build-tools = "0.20.0"
