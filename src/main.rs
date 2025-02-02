@@ -3,19 +3,21 @@
 mod utils;
 mod filter;
 mod factory;
+mod dirmodel;
+mod backends;
+use backends::{HyprpaperBackend, PreloadWallpaper, SetWallpaper};
+use dirmodel::wallpaper_dir_model;
+use tokio::runtime::Runtime;
+use utils::{get_attr, preload_dir};
 use crate::factory::WallpaperFactory;
-use crate::utils::{attrs_to_str, get_str_attr, is_image, load_css};
+use crate::utils::{load_css};
 
 use std::path::PathBuf;
 use std::str::FromStr;
-
-use filter::custom_filter;
-use gtk::gio::{prelude::*, File, FileInfo, Menu, MenuItem, FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE, FILE_ATTRIBUTE_STANDARD_NAME, FILE_ATTRIBUTE_THUMBNAIL_IS_VALID, FILE_ATTRIBUTE_THUMBNAIL_PATH};
-use gtk::{Application, ContentFit, CustomFilter, DirectoryList, Filter, FilterListModel, GridView, Image, Label, ListItemFactory, Picture, PopoverMenu, PopoverMenuFlags, ScrolledWindow, SelectionModel, SingleSelection};
-use gtk::gdk::Display;
-use gtk::glib::Object;
-use gtk::{prelude::*, CssProvider, ListItem, SignalListItemFactory};
-use gtk::{Window, Builder, Box};
+use gtk::gio::{prelude::*, File, FileInfo};
+use gtk::{Application, Builder, GridView, ListItemFactory, ScrolledWindow, SelectionModel };
+use adw::prelude::*;
+use adw::{Window};
 
 
 struct AppWindow {
@@ -38,40 +40,27 @@ impl AppWindow {
 
 }
 
-
-fn wallpaper_dir_model(dir: PathBuf) -> Option<SingleSelection>{
-    if !dir.exists() {return None;};
-    if !dir.is_dir() {return None;};
-
-    let file = File::for_path(dir);
-    let attrs = attrs_to_str([
-        FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-        FILE_ATTRIBUTE_THUMBNAIL_PATH,
-        FILE_ATTRIBUTE_THUMBNAIL_IS_VALID,
-        FILE_ATTRIBUTE_STANDARD_NAME,
-    ]);
-    let model = DirectoryList::new(Some(&attrs), Some(&file));
-    let filtered_model = FilterListModel::new(Some(model), Some(custom_filter()));
-    let selection_model = SingleSelection::new(Some(filtered_model));
-    Some(selection_model)
-}
-
-
-
 pub fn wallpaper_grid<T: IsA<SelectionModel>, U: IsA<ListItemFactory>>(model: Option<T>, factory: Option<U>) -> GridView {
     let grid_view = GridView::new(model, factory);
     grid_view.set_css_classes(&["file-grid"]);
+    grid_view.set_single_click_activate(true);
     grid_view
 }
 
 fn main() {
+    let backend = HyprpaperBackend::new("hyprctl".to_string());
+    let dir = PathBuf::from_str("/home/johannes/Pictures/wallpapers").unwrap();
+    
+
     // Create a new application
     let app = Application::builder()
         .application_id("com.example.myapp")
         .build();
     app.connect_startup(|_| load_css());
     // Connect to the "activate" signal to set up the UI
-    app.connect_activate(|app| {
+    app.connect_activate(move |app| {
+        let backend = backend.clone();
+        let rt = Runtime::new().unwrap();
         // Create a new builder and add the UI definition from the file
         let builder = Builder::from_string(include_str!("resources/window.ui"));
         let window = AppWindow::new(app, builder.object("window").unwrap());
@@ -81,6 +70,30 @@ fn main() {
         factory.setup_children();
         factory.bind_children();
         let grid = wallpaper_grid(model, Some(factory.factory));
+        grid.connect_activate(move |grid_view, id| {
+            let backend = backend.clone();
+            let item = grid_view.model().unwrap().item(id);
+            let file_info = match item.and_downcast_ref::<FileInfo>(){
+                Some(fi) => fi,
+                None => return,
+            };
+
+            let file = match get_attr::<_, File>(file_info, "standard::file") {
+                Some(path) => path,
+                None => {println!("hell");return;},
+            };
+            let path = match file.path() {
+                Some(path) => path,
+                None => return,
+            };
+            rt.spawn(async move {
+                backend.preload_wallpaper(&path).await.unwrap_or_else(|err| eprintln!("{err}"));
+                
+                backend.set_wallpaper(&path).unwrap_or_else(|err| eprintln!("{err}"));
+            });
+            
+            
+        });
         scrolled_window.set_child(Some(&grid));
         window.present();
     });

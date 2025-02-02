@@ -1,6 +1,13 @@
 .transparent {
     background-color: transparent;
 }
+.file-grid {
+    padding: 0em;
+}
+
+.file-grid {
+    padding: 5px; 
+}
 
 .file-grid > * {
     padding: 5px;

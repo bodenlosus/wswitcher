@@ -18,11 +18,18 @@
           overlays = [ rust-overlay.overlays.default ];
         };
         rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+        loaders = pkgs.callPackage ./pixbufmodfile.nix {};
       in
       {
         # packages.default = pkgs.callPackage ./. {};  
         devShells.default = pkgs.mkShell {
+          shellHook = ''
+            export GDK_PIXBUF_MODULE_FILE=${loaders}/loaders.cache
+          '';
           packages = with pkgs; [
+            loaders
+            gdk-pixbuf
+            webp-pixbuf-loader
             gtk4
             rustToolchain
             openssl
@@ -43,6 +50,7 @@
             LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}";
             # BINDGEN_EXTRA_CLANG_ARGS = "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.lib.getVersion pkgs.clang}/include";
             RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
+            GDK_PIXBUF_MODULE_FILE = "${loaders}/loaders.cache";
           };
         };
       });
