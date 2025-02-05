@@ -1,9 +1,7 @@
-use std::{fs::{}, path::PathBuf};
+use std::{fmt::format, fs::{}, io::Error, path::{Path, PathBuf}, process::{Command, Output}};
 
 use gtk::{gdk::Display, gio::FileInfo, glib::{object::{CastNone, IsA, ObjectType}, Object}, CssProvider};
 use tokio::fs::read_dir;
-
-use crate::backends::PreloadWallpaper;
 
 
 pub fn is_image(fi:&FileInfo) -> bool {
@@ -65,29 +63,22 @@ pub fn attrs_to_str<T: IntoIterator<Item: ToString>>(attributes: T) -> String{
     return attrs.to_string();
 }
 
-pub async fn preload_dir<T: PreloadWallpaper>(backend: &T, dir: &PathBuf ) -> Result<(), String> {
-    if !dir.exists() {return Err(format!("dir doesnt exist {:?}", dir));};
-    if !dir.is_dir() {return Err(format!("not a directory {:?}", dir));};
-    let mut entries = match read_dir(dir).await {
-        Ok(entries) => entries,
-        Err(err) => return Err(format!("Error reading directory: {}", err)),
-    };
-    
-    loop { 
-        let entry = match entries.next_entry().await {
-            Ok(Some(entry)) => entry,
-            Ok(None) => break,
-            Err(_) => continue,
-              
-        };
-        let file_type = match entry.file_type().await {
-            Ok(file_type) => file_type,
-            Err(_) => continue,
-        };
-        if !file_type.is_file() { continue; }
-        let path: PathBuf = entry.path();
-        let _res = backend.preload_wallpaper(&path).await;
-    }
 
-    Ok(())
+pub fn handle_cmd_result(res: Result<Output, Error>, error_idf: Option<&str>) -> Result<Output, String>{
+    let idf = error_idf.unwrap_or("");
+    match res {
+        Ok(output) => {
+            if output.status.success() {
+                println!("{} ran succesfully: {:#}", idf, String::from_utf8_lossy(&output.stdout));
+                Ok(output)
+            } else {
+                let msg = format!("{:?} failed: {:?}", idf, output.stderr);
+                eprintln!("msg: {:?}", msg);
+                Err(msg)
+            }
+        }
+        Err(err) => {
+            Err(format!("{:?} failed: {}", idf, err))
+        }
+    }
 }
