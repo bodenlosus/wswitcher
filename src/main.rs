@@ -135,8 +135,12 @@ async fn main() {
 fn build_ui(app: &Application) {
     let args: Vec<String> = env::args().collect();
 
+    
+
     let default = "~/Pictures".to_string();
     let dir = args.get(1).unwrap_or(&default);
+
+    println!("{dir}");
 
     let backend = SwwwBackend::new("swww".to_string());
     let backend = Arc::new(Mutex::new(backend));
