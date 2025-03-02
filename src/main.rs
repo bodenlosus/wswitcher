@@ -4,28 +4,25 @@ mod factory;
 mod filter;
 mod list;
 mod utils;
-use backends::{CleanUp, SwwwBackend};
-use backends::{HyprpaperBackend, SetWallpaper};
+use backends::SwwwBackend;
 use dirmodel::wallpaper_dir_model;
-use gtk::gdk::{Backend, Key};
+use gtk::gdk::Key;
+use gtk::gio::{ApplicationCommandLine, ApplicationFlags};
 use gtk::glib::Propagation;
 use list::List;
 use tokio::runtime::Runtime;
-use tokio::spawn;
 
 use crate::factory::WallpaperFactory;
 use crate::utils::load_css;
-use utils::get_attr;
 
-use std::env::{self, Args};
+use std::env::{self};
 use std::future::Future;
 use std::path::PathBuf;
 
 use adw::Window;
-use adw::{prelude::*, HeaderBar, ToolbarView};
-use gtk::gio::{prelude::*, Cancellable, File, FileInfo};
+use adw::prelude::*;
 use gtk::{
-    glib, Application, Builder, Button, EventControllerKey, FileChooserDialog, FileDialog,
+    glib, Application, Builder, EventControllerKey,
     GridView, ListItemFactory, ScrolledWindow, SelectionModel,
 };
 use gtk4_layer_shell::{self, Edge, KeyboardMode, Layer, LayerShell};
@@ -120,28 +117,32 @@ pub fn wallpaper_grid<T: IsA<SelectionModel>, U: IsA<ListItemFactory>>(
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
+    let default = "~/Pictures".to_string();
+    let dir = args.get(1).unwrap_or(&default);
+
+    println!("{dir}");
     // Create a new application
     let app = Application::builder()
-        .application_id("com.example.myapp")
+        .application_id("com.example.myapp").flags(ApplicationFlags::HANDLES_COMMAND_LINE)
         .build();
     app.connect_startup(|_| load_css());
     // Connect to the "activate" signal to set up the UI
-    app.connect_activate(build_ui);
+    app.connect_command_line(build_ui);
 
     // Run the application
     app.run();
 }
 
-fn build_ui(app: &Application) {
-    let args: Vec<String> = env::args().collect();
-
-    
-
-    let default = "~/Pictures".to_string();
-    let dir = args.get(1).unwrap_or(&default);
-
-    println!("{dir}");
-
+fn build_ui(app: &Application, cmdline: &ApplicationCommandLine) -> i32 {
+    let args = cmdline.arguments();
+    let dir = match args.get(1) {
+        Some(s) => {
+            let s = s.to_str();
+            s.unwrap_or("~/Pictures")
+        },
+        None => "~/Pictures",
+    };
     let backend = SwwwBackend::new("swww".to_string());
     let backend = Arc::new(Mutex::new(backend));
     // Create a new builder and add the UI definition from the file
@@ -162,4 +163,6 @@ fn build_ui(app: &Application) {
     window.present();
 
     list.on_activate();
+
+    0
 }

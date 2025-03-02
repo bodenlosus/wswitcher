@@ -4,13 +4,12 @@ use std::{rc::Rc, sync::Arc};
 use std::cell::RefCell;
 use crate::utils::get_attr;
 
-use gtk::gdk::Backend;
 use gtk::ListTabBehavior;
-use gtk::{gdk::Key, gio::File, glib, prelude::*, EventControllerKey, GridView, ListView, Orientation, SelectionModel, TextDirection, Widget, Window};
+use gtk::{gio::File, glib, prelude::*, ListView, Orientation, SelectionModel};
 
 use crate::{backends::SetWallpaper, factory::WallpaperFactory};
 
-type  BackendClone<T: SetWallpaper> = Arc<Mutex<T>>;
+type  BackendClone<T> = Arc<Mutex<T>>;
 
 pub struct List<T: SetWallpaper + 'static>{
     pub list: ListView,
