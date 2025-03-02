@@ -7,6 +7,10 @@ pub trait SetWallpaper {
     async fn set_wallpaper(&mut self, path: &PathBuf) -> Result<(), String>;
 }
 
+pub trait CleanUp {
+    async fn clean_up(&mut self) -> Result<(), String>;
+}
+
 pub trait ValidateWallPath {
     fn validate_wall_path(&self, path: &PathBuf) -> Result<(), String>;
 }
@@ -32,10 +36,6 @@ impl HyprpaperBackend {
         handle_cmd_result(res, Some("preloading wallpaper"))?;
 
         Ok(())
-    }
-
-    fn update_current_path(&mut self, path_str: &str) {
-        self.current_wallpaper_path = Some(path_str.to_string());
     }
 
     async fn unload_wallpaper(&self, pathstr: &Option<String>) -> Result<(), String> {
@@ -98,6 +98,58 @@ impl SetWallpaper for HyprpaperBackend {
         // Remember which wallpaper is loaded
         self.current_wallpaper_path = Some(path_str.to_string());
 
+        Ok(())
+    }
+}
+
+impl CleanUp for HyprpaperBackend {
+    async fn clean_up(&mut self) -> Result<(), String> {
+        self.unload_wallpaper(&self.current_wallpaper_path).await?;
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
+pub struct SwwwBackend {
+    swaybg_path: String,
+}
+
+impl SwwwBackend {
+    pub fn new(swaybg_path: String) -> Self{
+        Self {
+            swaybg_path
+        }
+    }
+}
+
+impl SetWallpaper for SwwwBackend {
+    async fn set_wallpaper(&mut self, path: &PathBuf) -> Result<(), String> {
+        self.validate_wall_path(path)?;
+
+        let path_str = path.to_str().ok_or("cannot conver path to strings")?;
+        
+        let res = Command::new(self.swaybg_path.clone())
+            .args(["img", path_str])
+            .output();
+        
+        handle_cmd_result(res, Some("setting wallpaper"))?;
+
+        Ok(())
+    }
+}
+
+impl ValidateWallPath for SwwwBackend {
+    fn validate_wall_path(&self, path: &PathBuf) -> Result<(), String> {
+        if !path.exists() {
+            return Err("File does not exist".to_string());
+        }
+        if !path.is_file() {
+            return Err("Path is not a file".to_string());
+        }
+
+        if !path.is_absolute() {
+            return Err("Path is not absolute".to_string());
+        }
         Ok(())
     }
 }

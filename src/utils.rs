@@ -4,8 +4,7 @@ use gtk::{
     gdk::Display,
     gio::FileInfo,
     glib::{
-        object::{CastNone, IsA, ObjectType},
-        Object,
+        self, object::{CastNone, IsA, ObjectType}, Object
     },
     CssProvider,
 };
